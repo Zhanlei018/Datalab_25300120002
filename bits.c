@@ -177,7 +177,11 @@ int bitXor(int x, int y) {
  *   Rating: 3
  */
 int negativePart(int x){
-  return 3;
+  /*先求x的符号位掩码，1是负数，0是正数。然后将它与x的补码经过与门，得到答案*/
+  int Xsign = x >> 31;
+  int Xnega = ~x + 1;
+  int ans =  Xsign & Xnega;
+  return ans;
 }
 
 
