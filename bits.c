@@ -253,7 +253,12 @@ int swapNibblePairs(int x) {
  *   Rating: 4
  */
 int secondLowestZeroBit(int x) {
-  return 7;
+  /*用公式~x&(x+1)得到最低位的0，然后让x加上最低为0来抹去这个0，最后重复一遍上述操作，得到的就是倒数第二个0的mask*/
+  int Xnega = ~x;
+  int Xleast0 = Xnega & (x + 1);
+  x = x + Xleast0;
+  Xleast0 = Xnega & (x + 1);
+  return Xleast0;
 }
 
 // P8
@@ -266,7 +271,21 @@ int secondLowestZeroBit(int x) {
  *   Rating: 5
  */
 int oddParity(int x) {
-  return 8;
+  /*设立一个Xhalf，通过右移得到X的左半边，与x本身进行异或。重复5次，就可以得到一个两位的数字
+  *这个两位的数字取与1，得到一个数，反转后就是要求的答案
+  */
+  int Xhalf = x >> 16;
+  x = x ^ Xhalf;
+  Xhalf = x >> 8;
+  x = x ^ Xhalf;
+  Xhalf = x >> 4;
+  x = x ^ Xhalf;
+  Xhalf = x >> 2;
+  x = x ^ Xhalf;
+  Xhalf = x >> 1;
+  x = x ^ Xhalf;
+  int ans = x & 1;
+  return !ans;
 }
 
 // P9
@@ -411,7 +430,25 @@ unsigned float_i2f(int x) {
  *   Rating: 10
  */
 int bitCount(int x) {
-  return 18;
+  /*先构建五个掩码，见第十九题注释部分。
+  *掩码用来保留每组的第0位。x右移1位再和掩码做与运算，两者相加就是这两位里1的总个数。
+  *以此类推，得到32位里面1的总个数
+  */
+  int count;
+  int wei4 = 0x0F;
+  int wei16 = 0xFF;
+  wei16 = wei16 + (wei16 << 8);
+  int wei8 = wei16 ^ (wei16 << 8);
+  wei4 = wei4 + (wei4 << 8); 
+  wei4 = wei4 + (wei4 << 16);
+  int wei2 = wei4 ^ (wei4 << 2);
+  int wei1 = wei2 ^ (wei2 << 1);
+  count = (x & wei1) + ((x >> 1) & wei1);
+  count = (count & wei2) + ((count >> 2) & wei2);
+  count = (count & wei4) + ((count >> 4) & wei4);
+  count = (count & wei8) + ((count >> 8) & wei8);
+  count = (count & wei16) + ((count >> 16) & wei16);
+  return count;
 }
 
 // P19
