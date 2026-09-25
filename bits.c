@@ -298,7 +298,14 @@ int oddParity(int x) {
  *   Rating: 5
  */
 int rotateRightBits(int x, int n) {
-  return 9;
+  /*先把n处理成31以内的正整数，然后把前半部分右移，掩码补0，后半部分左移，加起来就是答案*/
+  n = n & 31;
+  int Xlef = x << (33 + ~n);
+  int Xrig = x >> n;
+  int X0 = (1 << (33 + ~n)) + ~0;
+  Xrig = Xrig & X0;
+  int ans = Xlef + Xrig;
+  return ans;
 }
 
 // P10
@@ -313,7 +320,14 @@ int rotateRightBits(int x, int n) {
  *   Rating: 5
  */
 int roundEvenPow2(int x, int n) {
-  return 10;
+  /*只要四舍五入后输出最高位的1就可以了，加上他自己的一般对应的2的n-1次方。商为偶数进位*/
+  int Xhalf = 1 << (n + ~0);
+  int Xquot = x >> n;
+  int lef = (Xquot & 1) + Xhalf + ~0;
+  int ans = x + lef;
+  ans = ans >> n;
+  ans = ans << n;
+  return ans;
 }
 
 // P11
