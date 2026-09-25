@@ -146,7 +146,9 @@ NOTES:
  *   Rating: 1
  */
 int signMask(void) {
-  return 1;
+  /*把1左移31位，得到最高位掩码*/
+  int ans = 1 << 31;
+  return ans;
 }
 
 // P2
@@ -158,7 +160,12 @@ int signMask(void) {
  *   Rating: 2
  */
 int bitXor(int x, int y) {
-	return 2;
+  /*x^y=~(~(x & ~y) & ~(~x & y))公式实现*/
+  int Lpart = x & ~y;
+  int Rpart = ~x & y;
+  int All = ~Lpart & ~Rpart;
+  All = ~All;
+  return All;
 }
 
 // P3
