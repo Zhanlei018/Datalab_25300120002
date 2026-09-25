@@ -233,7 +233,14 @@ int logicalShift(int x, int n) {
  *   Rating: 4
  */
 int swapNibblePairs(int x) {
-  return 6;
+  /*助教我先做的19题，其实思路一样，先构造4位掩码wei4=11110000111100001111000011110000
+  *然后用x右移4位与掩码 或上 x与掩码左移四位，即可得到四位交换
+  */
+  int wei4 = 0x0F;
+  wei4 = wei4 + (wei4 << 8); 
+  wei4 = wei4 + (wei4 << 16);
+  x = ((x >> 4) & wei4) | ((x & wei4) << 4);
+  return x;
 }
 
 // P7
