@@ -196,7 +196,14 @@ int negativePart(int x){
  *   Rating: 4
  */
 int copyByteWithin(int x, int src, int dst) {
-  return 4;
+  /*先算出X在src与dst的实际的左移量，然后把目标的被复制字节移到对应字节，再清空目标字节，二者取或，得到答案*/
+  int Xsrc = src << 3;
+  int Xdst = dst << 3;
+  int Beifuzhi = (x >> Xsrc) & 255;
+  int Xfuzhi = Beifuzhi << Xdst;
+  int Mubiao = x & ~(255 << Xdst);
+  int ans = Mubiao | Xfuzhi;
+  return ans;
 }
 
 // P5
@@ -209,7 +216,12 @@ int copyByteWithin(int x, int src, int dst) {
  *   Rating: 4
  */
 int logicalShift(int x, int n) {
-  return 5;
+  /*先得到X右移n位的数字，然后算x的符号掩码。把掩码右移n-1位，取反码求与*/
+  int Xshift = x >> n;
+  int all1 = 1 << 31;
+  int high0 = (all1 >> n) << 1;
+  int ans = Xshift & ~high0;
+  return ans;
 }
 
 // P6
