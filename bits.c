@@ -343,7 +343,17 @@ int roundEvenPow2(int x, int n) {
  *   Rating: 5
  */
 int midpointTowardFirst(int x, int y) {
-  return 11;
+  /*先算出x和y的向下取整的平均值，用(x & y) + ((x ^ y) >> 1)公式来防止溢出
+  *然后提取X^Y的最高位，算出是谁大，运算求得xy
+  *判断x+y是否为奇数，用它们算出偏移量是0还是1。与midpoint加上即可得到towardfirst的结果
+  */
+  int Midpoint = (x & y) + ((x ^ y) >> 1);
+  int sign = (x ^ y) >> 31;
+  int XYs = (sign & (x >> 31)) | (~sign & ((x + ~y + 1) >> 31));
+  int XYji = (x ^ y) & 1;
+  int Toward = ~XYs & XYji;
+  Midpoint = Midpoint + Toward;
+  return Midpoint;
 }
 
 
@@ -357,7 +367,30 @@ int midpointTowardFirst(int x, int y) {
  *   Rating: 7
  */
 int isBetweenEitherOrder(int x, int a, int b) {
-  return 12;
+  /*先取abx的符号位，然后算AX和BX是否同号。然后用几个式子表达AXB三个数的单调小于关系，反转后得到大于等于关系
+  *如果AB正好能把X放在比较中间，那么就输出1
+  */
+  int Xsign = x >> 31;
+  int Asign = a >> 31;
+  int Bsign = b >> 31;
+  int SignAX = Xsign ^ Asign;
+  int SignBX = Xsign ^ Bsign;
+  int XjianA = x + ~a + 1;
+  int AjianX = a + ~x + 1;
+  int XjianB = x + ~b + 1;
+  int BjianX = b + ~x + 1;
+  int XxiaoyuA = (SignAX & Xsign) | (~SignAX & (XjianA >> 31));
+  int XxiaoyuB = (SignBX & Xsign) | (~SignBX & (XjianB >> 31));
+  int AxiaoyuX = (SignAX & Asign) | (~SignAX & (AjianX >> 31));
+  int BxiaoyuX = (SignBX & Bsign) | (~SignBX & (BjianX >> 31));
+  int XdayudengyuA = !XxiaoyuA;
+  int BdayudengyuX = !BxiaoyuX;
+  int XdayudengyuB = !XxiaoyuB;
+  int AdayudengyuX = !AxiaoyuX;
+  int AXB = XdayudengyuA & BdayudengyuX;
+  int BXA = XdayudengyuB & AdayudengyuX;
+  int ans = (AXB | BXA) & 1;
+  return ans;
 }
 
 // P13
@@ -370,7 +403,22 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Rating: 7
  */
 int mul5Sat(int x) {
-  return 13;
+  /*这道题目太难了，试了几十次，终于做出来
+  *先算出x的上限和下限，然后得到X和溢出进位的符号，算出是否会进位泄露，若都无则无泄漏
+  *然后只有无泄漏，才能算5x输出
+  *有泄露，则按位比较泄露和最大或者最小数输出
+  */
+  int MIN = 1 << 31;
+  int MAX = ~MIN;
+  int Limit1 = (0x19 << 24) | (0x99 << 16) | (0x99 << 8) | 0x99;
+  int Limit2 = ~Limit1;
+  int Xsign = x >> 31;
+  int Xleak1 = ~Xsign & ~((x + Limit2 + 1) >> 31);
+  int Xleak2 = Xsign & ((x + Limit1 + 1) >> 31);
+  int Noleak = ~(Xleak1 | Xleak2);
+  int Xmul5 = Noleak & ((x << 2) + x);
+  int ans = (Xleak1 & MAX) | (Xleak2 & MIN) | Xmul5;
+  return ans;
 }
 
 // P14
