@@ -469,14 +469,8 @@ unsigned floatScaleThreeHalves(unsigned uf) {
     unsigned M, E, M3, keep, drop, temp;
     unsigned new_frac, result;
     int p, shift;
-
-    /* 1. 处理 NaN 和无穷大 */
     if (exp == 0xFF) return uf;
-
-    /* 2. 处理 +0 和 -0 */
     if (exp == 0 && frac == 0) return uf;
-
-    /* 3. 统一提取有效数和实际指数 */
     if (exp == 0) {
         M = frac;
         E = -126;
@@ -484,47 +478,31 @@ unsigned floatScaleThreeHalves(unsigned uf) {
         M = (1 << 23) | frac;
         E = exp - 127;
     }
-
-    /* 4. 乘以 3 */
     M3 = M * 3;
-
-    /* 5. 寻找 M3 的最高有效位 p */
     p = 0;
     temp = M3;
     while (temp > 1) {
-        temp >>= 1;
-        p = p + 1;
+      temp >>= 1;
+      p = p + 1;
     }
-
-    /* 6. 如果结果是非规格化数（指数小于 -126） */
     if (p <= 23) {
-        new_frac = (M3 >> 1) + ((M3 & 1) && ((M3 >> 1) & 1));
-        return (s << 31) | new_frac;
+      new_frac = (M3 >> 1) + ((M3 & 1) && ((M3 >> 1) & 1));
+      return (s << 31) | new_frac;
     }
-
-    /* 7. 规格化处理：计算移位数和保留部分 */
     shift = p - 23;
     keep = M3 >> shift;
     drop = M3 & ((1 << shift) - 1);
-
-    /* 8. 舍入（Round-to-nearest-even） */
     if (drop > (1 << (shift - 1)) || (drop == (1 << (shift - 1)) && (keep & 1))) {
-        keep = keep + 1;
-        if (keep == (1 << 24)) {
-            keep = keep >> 1;
-            shift = shift + 1;
-        }
+      keep = keep + 1;
+      if (keep == (1 << 24)) {
+        keep = keep >> 1;
+        shift = shift + 1;
+      }
     }
-
-    /* 9. 计算新的阶码 */
     E = E + shift - 1 + 127;
-
-    /* 10. 阶码溢出检查（变成无穷大） */
     if (E >= 0xFF) {
         return (s << 31) | (0xFF << 23);
     }
-
-    /* 11. 重新打包返回 */
     result = (s << 31) | (E << 23) | (keep & 0x7FFFFF);
     return result;
 }
