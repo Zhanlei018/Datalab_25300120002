@@ -431,7 +431,22 @@ int mul5Sat(int x) {
  *   Rating: 7
  */
 int classifyAdd3(int x, int y, int z) {
-  return 14;
+  /*拆成两次和运算，然后求五个值的符号位。将符号位处理得到两次和运算的进位与否，再算三次的加法是否产生溢出
+  *有溢出就判断往哪里溢出，输出正负1；无溢出就输出0
+  */
+  int Add1 = x + y;
+  int Add2 = Add1 + z;
+  int Xsign = x >> 31;
+  int Ysign = y >> 31;
+  int Zsign = z >> 31;
+  int A1sign = Add1 >> 31;
+  int A2sign = Add2 >> 31;
+  int Jinwei1 = (Xsign & Ysign) | ((Xsign | Ysign) & ~A1sign);
+  int Jinwei2 = (A1sign & Zsign) | ((A1sign | Zsign) & ~A2sign);
+  int Jinweians = Xsign + Ysign + Zsign + ~Jinwei1 + ~Jinwei2 + 2 + (A2sign & 1);
+  int ans = Jinweians >> 31;
+  ans = ans | (!Jinweians ^ 1);
+  return ans;
 }
 
 // P15
@@ -448,7 +463,70 @@ int classifyAdd3(int x, int y, int z) {
  *   Rating: 7
  */
 unsigned floatScaleThreeHalves(unsigned uf) {
-  return 15;
+    unsigned s = uf >> 31;
+    unsigned exp = (uf >> 23) & 0xFF;
+    unsigned frac = uf & 0x7FFFFF;
+    unsigned M, E, M3, keep, drop, temp;
+    unsigned new_frac, result;
+    int p, shift;
+
+    /* 1. 处理 NaN 和无穷大 */
+    if (exp == 0xFF) return uf;
+
+    /* 2. 处理 +0 和 -0 */
+    if (exp == 0 && frac == 0) return uf;
+
+    /* 3. 统一提取有效数和实际指数 */
+    if (exp == 0) {
+        M = frac;
+        E = -126;
+    } else {
+        M = (1 << 23) | frac;
+        E = exp - 127;
+    }
+
+    /* 4. 乘以 3 */
+    M3 = M * 3;
+
+    /* 5. 寻找 M3 的最高有效位 p */
+    p = 0;
+    temp = M3;
+    while (temp > 1) {
+        temp >>= 1;
+        p = p + 1;
+    }
+
+    /* 6. 如果结果是非规格化数（指数小于 -126） */
+    if (p <= 23) {
+        new_frac = (M3 >> 1) + ((M3 & 1) && ((M3 >> 1) & 1));
+        return (s << 31) | new_frac;
+    }
+
+    /* 7. 规格化处理：计算移位数和保留部分 */
+    shift = p - 23;
+    keep = M3 >> shift;
+    drop = M3 & ((1 << shift) - 1);
+
+    /* 8. 舍入（Round-to-nearest-even） */
+    if (drop > (1 << (shift - 1)) || (drop == (1 << (shift - 1)) && (keep & 1))) {
+        keep = keep + 1;
+        if (keep == (1 << 24)) {
+            keep = keep >> 1;
+            shift = shift + 1;
+        }
+    }
+
+    /* 9. 计算新的阶码 */
+    E = E + shift - 1 + 127;
+
+    /* 10. 阶码溢出检查（变成无穷大） */
+    if (E >= 0xFF) {
+        return (s << 31) | (0xFF << 23);
+    }
+
+    /* 11. 重新打包返回 */
+    result = (s << 31) | (E << 23) | (keep & 0x7FFFFF);
+    return result;
 }
 
 // P16
@@ -464,7 +542,50 @@ unsigned floatScaleThreeHalves(unsigned uf) {
  *   Rating: 10
  */
 unsigned floatRoundEven(unsigned uf) {
-  return 16;
+  /*先把输入的uf拆开变成s，exp，frac三个部分，然后判断是否是整数或者infinity，如果是的话，直接原样输出
+  *再判断uf是不是纯小数，是的话就判断是否为负数（输出-0）在0.5左侧（输出0）右侧（输出1）
+  *然后对于不是纯小数，左移直到它是一个大整数，切掉小数，判断往哪里进位
+  *进位溢出就向exp进位，然后frac归位。阶码要是变成0xFF就是无穷大，直接返回
+  */
+  unsigned s = uf >> 31;
+  unsigned exp = (uf >> 23) & 0xFF;
+  unsigned frac = uf & 0x7FFFFF;
+  if(exp == 0xFF) return uf;
+  if(exp >= 150) return uf;
+  if (exp < 127) {
+    if (exp < 126 || frac == 0) return s << 31;
+    else return (s << 31) | (127 << 23);
+  }
+  unsigned m = (1 << 23) | frac;
+  int shift = 150 - exp;
+  unsigned ufmask = (1 << shift) - 1;
+  unsigned ufdrop = m & ufmask;
+  unsigned ufbaoliu = m >> shift; 
+  unsigned half = 1 << (shift - 1); 
+  int roundUp = 0;
+  if (ufdrop > half) roundUp = 1;       
+  else if (ufdrop == half) {
+    if (ufbaoliu & 1) roundUp = 1;         
+  }
+  if (roundUp == 1) {
+    ufbaoliu = ufbaoliu + 1;
+    if (ufbaoliu == (1 << 24)) {  
+      ufbaoliu = 1 << 23;  
+      exp = exp + 1;
+      if (exp == 0xFF) return (s << 31) | (0xFF << 23); 
+    }
+  }
+  int p = 0;
+  unsigned temp = ufbaoliu;
+  while (temp > 1) {
+    temp >>= 1;
+    p = p + 1;
+  }
+  exp = 127 + p;                     
+  frac = (ufbaoliu << (23 - p)) & 0x7FFFFF;
+  unsigned ans = (s << 31) | (exp << 23);
+  ans = ans | frac;
+  return ans;
 }
 
 // P17
@@ -478,7 +599,45 @@ unsigned floatRoundEven(unsigned uf) {
  *   Rating: 10
  */
 unsigned float_i2f(int x) {
-  return 17;
+  /*其实和17题差不多，复用了大部分17题的代码*/
+  unsigned s = 0, exp = 0, frac = 0;
+  int Purex = x;
+  int temp = 0, p = 0;
+  if (x == 0) return 0;
+  if (x == 0x80000000) return 0xCF000000;
+  if (x < 0) {
+    Purex = -x;
+    s = 1;
+  }
+  temp = Purex;
+  while (temp > 1) {
+    temp >>= 1;
+    p = p + 1;
+  }
+  exp = 127 + p;
+  if(p <= 23) frac = (Purex << (23 - p)) & 0x7FFFFF;
+  else{
+    int shift = p - 23;
+    unsigned baoliu = Purex >> shift;             
+    unsigned Xdrop = Purex & ((1 << shift) - 1);
+    unsigned half = 1 << (shift - 1); 
+    int round_up = 0;
+    if (Xdrop > half) round_up = 1;
+    else if (Xdrop == half) {
+      if (baoliu & 1) round_up = 1;
+    }
+    if (round_up) {
+      baoliu = baoliu + 1;
+      if (baoliu == (1 << 24)) { 
+        baoliu = baoliu >> 1;
+        exp = exp + 1;
+      }
+    }
+    frac = baoliu & 0x7FFFFF; 
+  }
+  unsigned ans = (s << 31) | (exp << 23);
+  ans = ans | frac;
+  return ans;
 }
 
 
