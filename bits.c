@@ -463,6 +463,10 @@ int classifyAdd3(int x, int y, int z) {
  *   Rating: 7
  */
 unsigned floatScaleThreeHalves(unsigned uf) {
+  /*代码复用了部分p16的题目部分
+  *先把输入的uf拆开变成s，exp，frac三个部分，然后判断是否是整数或者infinity，如果是的话，直接原样输出
+  *用p记录这个uf的部分码情况，然后讨论p的情况。求shift偏移量，然后组装小数输出
+  */
     unsigned s = uf >> 31;
     unsigned exp = (uf >> 23) & 0xFF;
     unsigned frac = uf & 0x7FFFFF;
